@@ -1,0 +1,84 @@
+---
+title: "R Notebook"
+author: "Paulo Barros"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+knitr::opts_chunk$set(include = TRUE,
+                      echo=TRUE, 
+                      message=TRUE, 
+                      warning=TRUE,  
+                      out.width = '75%' 
+)
+```
+
+### Importação de dados
+
+```{r}
+# Importação
+
+
+
+dados <- read.csv("dadosR.csv", header=T, stringsAsFactors = T)
+str(dados)
+
+# instalar pacote
+#install.packages("tidyverse")
+
+# carregando pacotes
+library(tidyverse)
+
+```
+
+### Manipulacão dos dados
+
+```{r}
+# Operador PIPE %>% 
+
+dados %>%
+  filter(PCC < 2000) %>%
+  select(PCC)
+
+summary(dados)
+
+dados %>% 
+  group_by(GRUPOS) %>%
+  summarise(`Média` = mean(PCC), `DP` = sd(PCC))
+
+
+  
+
+
+dados %>%
+  dplyr::group_by(GRUPOS) %>%
+  dplyr::summarise_all(list(`media`= mean,`dp`= sd, `min`= min,`max`= max))
+  
+library(rstatix)
+
+descritivas <- dados %>%
+  dplyr::group_by(GRUPOS) %>%
+  rstatix::get_summary_stats(type="full", show=c("n","mean","sd", "min","max")) %>%
+  dplyr::rename(`Grupos` = GRUPOS,`Variável` = variable, `N`= n, `Média` = mean, `DP`=sd, `Min` = min, `Máx` = max)
+```
+
+
+```{r}
+
+dados %>%
+  dplyr::group_by(GRUPOS) %>%
+  rstatix::get_summary_stats(type="full", show=c("n","mean","sd", "min","max")) %>%
+  dplyr::rename(`Grupos` = GRUPOS,`Variável` = variable, `N`= n, `Média` = mean, `DP`=sd, `Min` = min, `Máx` = max) %>%
+  ggplot(aes(x=`Variável`, y=`Média`)) +
+  geom_bar(stat="identity") +
+  facet_wrap(~ `Grupos`)
+
+
+
+```
+
+```{r}
+
+```
