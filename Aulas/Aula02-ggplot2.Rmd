@@ -1,0 +1,155 @@
+---
+title: "GGPLOT2"
+author: "Mentoria R"
+output: html_notebook
+highlight: tango
+---
+
+<hr>
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(include = T, echo =T, message=F, warning=F)
+```
+
+#### Pacotes
+
+```{r}
+library(tidyverse)
+```
+
+<br>
+
+## Importando Dados
+
+```{r}
+dados <- read.csv("dadosR.csv", stringsAsFactors = T)
+head(dados)
+```
+
+## Componentes de um gráfico em GGPLOT
+
+```{r eval=F}
+
+ggplot(data = <DADOS>) +
+<FUNCAO_GEOMETRICA>(mapping = aes(<MAPEAMENTO>))
+
+```
+
+**Camada de Dados**: é a camada que define qual o conjunto de dados a ser utilizado na plotagem
+
+-   `ggplot(data=<DADOS>)` : **`<DADOS`\>** é o conjunto de dados a ser plotado
+
+-   `<FUNCAO_GEOMETRICA>(mapping = aes(<MAPEAMENTO>))` :
+
+    -   **`<FUNCAO_GEOMETRICA>`** : define que tipo de visualização queremos, exemplo:
+
+        -   `geom_point` : gráfico de dispersão por pontos
+        -   `geom_line` : gráfico de linhas
+        -   `geom_bar` : gráfico de barras <br> <br>
+
+    -   **`mapping = aes(<MAPEAMENTO>)`** : passando as coordenadas `(x,y)` dos dados pro `ggplot`
+
+```{r}
+ggplot(data= dados) +
+  geom_point(mapping = aes(x=PCC, y=CPT)) +
+  labs(title="Titule", subtitle = "Subtitulo", caption = "Nota",
+       x= "Eixo X", y="Eixo Y") +
+  theme_classic()
+```
+
+## Boxplot
+
+**Operadores Lógicos**
+
+`==` igual `!=` diferente `<=` menor `>=` maior
+ 
+```{r}
+dados %>%
+  filter(GRUPOS == 'NF') %>%
+  ggplot(data = .,mapping = aes(x=GRUPOS, y=PCC)) +
+  geom_boxplot()
+```
+
+```{r}
+ggplot(dados,aes(x=GRUPOS,y=PCC, fill=GRUPOS)) +
+  geom_boxplot(color="black") +
+  labs(title="Titulo do Grafico", subtitle="subtitulo",
+       x = "Eixo X", y="Eixo y") +
+  theme_classic()
+```
+
+## Histograma
+
+```{r}
+ggplot(dados, aes(x=PCC)) +
+  geom_histogram() +
+  facet_wrap(~ GRUPOS)
+```
+
+## Gráfico de Barras
+
+```{r}
+ggplot(dados, aes(x=GRUPOS,y=LPT, fill=GRUPOS)) +
+  geom_bar(stat = "identity")
+
+dados %>%
+  group_by(GRUPOS) %>%
+  select(LPT) %>%
+  summarise(media = mean(LPT), total = sum(LPT))
+```
+
+```{r}
+
+dados %>%
+  tidyr::pivot_longer(PCC:LSC,names_to = "variable",values_to = "response") %>%
+  ggplot(data = .,aes(y=response, x=GRUPOS, fill=GRUPOS)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(values =  c("#366B59","#566B64","#76EBC4","#BEEEDE")) +
+  facet_wrap(~ variable) +
+  theme_minimal()
+```
+
+## Simulação de dados
+
+**Exemplo de Aplicação:** Avaliar a relação entre peso do fruto e doses de um composto nitrogenado aplicado no solo.
+
+$$\large y_{i} = \beta_0 + \beta_1X_1 + \beta_2X_i^2 + \varepsilon_{i}'$$
+
+```{r}
+library(magrittr)
+
+set.seed(231)
+erro <- rnorm(10,0,1.11)
+ordem <- sample(1:10,10)
+dose <- (c(21:30))
+
+dados <- tibble(ordem,dose,erro)
+
+dados %<>% dplyr::mutate(peso = -70 + 10*dose -0.2*(dose^2) + erro)
+dados %<>% dplyr::select(-erro)
+
+```
+
+## Gráfico Regressão
+
+```{r include=TRUE, echo=TRUE, out.width="75%"}
+
+library(ggpubr)
+
+ggplot(dados,aes(x=dose,y=peso)) +
+  geom_smooth(data=dados,method = 'lm', formula = y ~ x + I(x^2) ,  se=TRUE) +
+  geom_point() +
+  stat_regline_equation(label.y = 55.5, aes(label = ..eq.label..),formula = y ~ x + I(x^2)) +
+  stat_regline_equation(label.y = 55, aes(label = ..rr.label..),formula = y ~ x + I(x^2)) +
+  labs(title = "Linear Regression", x="Dose",y="Peso" ) +
+  theme_classic()
+
+```
+
+## LINKS UTEIS
+
+[STHDA](!http://www.sthda.com/english/wiki/ggplot2-barplots-quick-start-guide-r-software-and-data-visualization)
+
+[GGPLOT2 FOR BEGGINERS](!https://www.youtube.com/watch?v=TgyWeKoK1HA)
+
+[COLINHA BÁSICA DE GRÁFICOS GGPLOT](!https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf)
