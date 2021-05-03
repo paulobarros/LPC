@@ -74,29 +74,30 @@ lm(TDN ~ trt+period+sheep, data = qlatino) %>%
 
 ```
 
-##Parcela subdividida e Experimentos Fatoriais
+## Parcela subdividida e Experimentos Fatoriais
 
-###Colocando os dados manualmente
+### Colocando os dados manualmente
 ```{r}
 Dat <- data.frame(list(
   observation = 1:24,
   parcela = rep(c("I","II","III"),each =8),
-  A = rep(rep(c("A0","A1"),each = 4),3),
-  B = rep(c("B0","B1","B2","B3"),times = 6 ),
+  A = rep(c("A0","A1"),each = 4,times=3),
+  B = rep(c("B0","B1","B2","B3"),times = 6),
   yield = c(13.8,15.5,21.0,18.9,19.3,22.2,25.3,25.9,
             13.5,15.0,22.7,18.3,18.0,24.2,24.8,26.7,
             13.2,15.2,22.3,19.6,20.5,25.4,28.4,27.6)
                 )) %>% 
   mutate(parcela=factor(parcela),
-         A=factor(A),B=factor(B)
+         A=factor(A),
+         B=factor(B)
          )
 
 ```
 
-###Analise Fatorial
+### Analise Fatorial
 
 ```{r}
-lm(yield~ A*B, data =Dat) %>% 
+lm(yield~ A*B, data =Dat) %>% #A*B=A+B+A:B
   anova()
 
 lm(yield~ A*B, data =Dat) %>% 
@@ -104,9 +105,10 @@ lm(yield~ A*B, data =Dat) %>%
 
 ```
 
-###Analise Parcela subdividida IC
+###Analise Parcela subdividida DIC
 ```{r}
-aov(yield~ A*B+Error(parcela:A), data =Dat)
+aov(yield~ A*B+Error(parcela:A), data =Dat) %>% 
+  summary()
 
 aov(yield~ A*B+Error(parcela:A), data =Dat) %>% 
   emmeans::lsmeans(pairwise ~ A:B,adjust = "tukey")
@@ -134,24 +136,24 @@ Dat <- data.frame(list(
 
 ###Analise Fatorial
 ```{r}
-aov(yield~bloco+ A*B, data =Dat) %>% 
+aov(yield~bloco+A*B, data =Dat) %>% 
   summary()
 
 aov(yield~bloco+ A*B, data =Dat) %>% 
-  lsmeans(pairwise ~ A:B,adjust = "tukey")
+  emmeans::lsmeans(pairwise ~ A:B,adjust = "tukey")
   
 ```
 
 
-###Analise Parcela subdividida IC
+###Analise Parcela subdividida DIC
 ```{r}
 aov(yield~ bloco + A*B + Error(bloco:A), data =Dat) %>% 
   summary()
 
 aov(yield~ bloco + A*B + Error(bloco:A), data =Dat) %>% 
-  lsmeans(pairwise ~ A:B,adjust = "tukey")
+  emmeans::lsmeans(pairwise ~ A:B,adjust = "tukey")
 ```
-#ExpDes Blocos Casualizados
+# ExpDes Blocos Casualizados
 
 ```{r}
 prdleite
@@ -160,5 +162,35 @@ rbd(treat = prdleite$trt, block = prdleite$bloco, resp=prdleite$leite, quali = T
     hvar='oneillmathews', sigT = 0.05, sigF = 0.05)
 
 
+```
+
+### DQL ExpDes
+```{r}
+data(ex3)
+
+attach(ex3)
+detach(ex3)
+
+latsd(ex3$trat, ex3$linha, ex3$coluna, ex3$resp, quali=TRUE, mcomp = "snk",
+sigT = 0.05, sigF = 0.05)
+
+```
+
+## Regressao ExpDes
+
+```{r}
+
+data(ex1)
+attach(ex1)
+a<-crd(trat, ig, quali=FALSE, nl=FALSE)
+detach(ex1)
+```
+
+### Graficos regressao
+
+```{r}
+graphics(a, degree=1)
+graphics(a, degree=2)
+graphics(a, degree=3)
 ```
 
