@@ -1,0 +1,153 @@
+---
+title: "GGPLOT2"
+author: "Mentoria R"
+output: html_notebook
+highlight: tango
+---
+
+<hr>
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(include = T, echo =T, message=F, warning=F)
+```
+
+#### Pacotes
+
+```{r}
+library(tidyverse)
+library(emmeans)
+#install.packages("emmeans")
+#install.packages("ExpDes")
+library(ExpDes)
+```
+
+<br>
+
+## Importando Dados
+
+```{r}
+setwd("~/Insync/leonardogloria@uenf.br/Google Drive/MENTORIA_R/LPC/LPC/Dados")
+
+prdleite <- read.table("blocos.txt", h = T) %>% 
+  mutate(trt=factor(trt),bloco=factor(bloco))
+
+qlatino <- read.table("latino.txt", h = T) %>% 
+  mutate(trt=factor(trt),period=factor(period),sheep=factor(sheep))
+
+```
+
+## Modelo blocos inteiramente casualizados
+
+```{r}
+lm(leite ~ trt+bloco, data = prdleite) %>% 
+  anova()
+```
+
+
+### Média dos Mínimos Quadrados para delineamento em blocos
+```{r}
+lm(leite ~ trt+bloco, data = prdleite) %>% 
+  emmeans::lsmeans(pairwise ~ trt,adjust = "tukey")
+
+lm(leite ~ trt+bloco, data = prdleite) %>%
+ emmeans::emmeans(., ~ trt)
+
+lm(leite ~ trt+bloco, data = prdleite) %>% 
+  emmeans::lsmeans(pairwise ~ trt,adjust = "tukey") %>% 
+  .$contrasts
+```
+
+## Modelo Quadrado Latino
+```{r}
+lm(TDN ~ trt+period+sheep, data = qlatino) %>% 
+  anova()
+
+lm(TDN ~ trt+period+sheep, data = qlatino) %>% 
+  emmeans::lsmeans(pairwise ~ trt,adjust = "tukey")
+
+lm(TDN ~ trt+period+sheep, data = qlatino) %>%
+ emmeans::emmeans(., ~ trt)
+
+lm(TDN ~ trt+period+sheep, data = qlatino) %>% 
+  emmeans::lsmeans(pairwise ~ trt,adjust = "tukey") %>% 
+  .$contrasts
+
+```
+
+##Parcela subdividida e Experimentos Fatoriais
+
+###Colocando os dados manualmente
+```{r}
+Dat <- data.frame(list(
+  observation = 1:24,
+  parcela = rep(c("I","II","III"),each =8),
+  A = rep(rep(c("A0","A1"),each = 4),3),
+  B = rep(c("B0","B1","B2","B3"),times = 6 ),
+  yield = c(13.8,15.5,21.0,18.9,19.3,22.2,25.3,25.9,
+            13.5,15.0,22.7,18.3,18.0,24.2,24.8,26.7,
+            13.2,15.2,22.3,19.6,20.5,25.4,28.4,27.6)
+                )) %>% 
+  mutate(parcela=factor(parcela),
+         A=factor(A),B=factor(B)
+         )
+
+```
+
+###Analise Fatorial
+
+```{r}
+lm(yield~ A*B, data =Dat) %>% 
+  anova()
+
+lm(yield~ A*B, data =Dat) %>% 
+  emmeans::lsmeans(pairwise ~ A:B,adjust = "tukey")
+
+```
+
+###Analise Parcela subdividida IC
+```{r}
+aov(yield~ A*B+Error(parcela:A), data =Dat)
+
+aov(yield~ A*B+Error(parcela:A), data =Dat) %>% 
+  emmeans::lsmeans(pairwise ~ A:B,adjust = "tukey")
+  
+
+```
+##Parcela subdividida e Experimentos Fatoriais
+
+###Colocando os dados manualmente parcela subdividida bloco
+
+```{r}
+Dat <- data.frame(list(
+  observation = 1:24,
+  bloco = rep(c("I","II","III"),each =8),
+  A = rep(rep(c("A0","A1"),each = 4),3),
+  B = rep(c("B0","B1","B2","B3"),times = 6 ),
+  yield = c(13.8,15.5,21.0,18.9,19.3,22.2,25.3,25.9,
+            13.5,15.0,22.7,18.3,18.0,24.2,24.8,26.7,
+            13.2,15.2,22.3,19.6,20.5,25.4,28.4,27.6)
+)) %>% 
+  mutate(bloco=factor(bloco),
+         A=factor(A),B=factor(B)
+         )
+```
+
+###Analise Fatorial
+```{r}
+aov(yield~bloco+ A*B, data =Dat) %>% 
+  summary()
+
+aov(yield~bloco+ A*B, data =Dat) %>% 
+  lsmeans(pairwise ~ A:B,adjust = "tukey")
+  
+```
+
+
+###Analise Parcela subdividida IC
+```{r}
+aov(yield~ bloco + A*B + Error(bloco:A), data =Dat) %>% 
+  summary()
+
+aov(yield~ bloco + A*B + Error(bloco:A), data =Dat) %>% 
+  lsmeans(pairwise ~ A:B,adjust = "tukey")
+```
