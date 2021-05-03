@@ -151,3 +151,14 @@ aov(yield~ bloco + A*B + Error(bloco:A), data =Dat) %>%
 aov(yield~ bloco + A*B + Error(bloco:A), data =Dat) %>% 
   lsmeans(pairwise ~ A:B,adjust = "tukey")
 ```
+#ExpDes Blocos Casualizados
+
+```{r}
+prdleite
+
+rbd(treat = prdleite$trt, block = prdleite$bloco, resp=prdleite$leite, quali = TRUE, mcomp='tukey',
+    hvar='oneillmathews', sigT = 0.05, sigF = 0.05)
+
+
+```
+
