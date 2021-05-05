@@ -52,11 +52,14 @@ lm(leite ~ trt+bloco, data = prdleite) %>%
 
 lm(leite ~ trt+bloco, data = prdleite) %>%
  emmeans::emmeans(., ~ trt)
-
+```
+### Contraste das medias dos tratamentos
+```{r}
 lm(leite ~ trt+bloco, data = prdleite) %>% 
   emmeans::lsmeans(pairwise ~ trt,adjust = "tukey") %>% 
   .$contrasts
 ```
+
 
 ## Modelo Quadrado Latino
 ```{r}
@@ -116,9 +119,9 @@ aov(yield~ A*B+Error(parcela:A), data =Dat) %>%
   
 
 ```
-##Parcela subdividida e Experimentos Fatoriais
+## Parcela subdividida e Experimentos Fatoriais
 
-###Colocando os dados manualmente parcela subdividida bloco
+### Colocando os dados manualmente parcela subdividida bloco
 
 ```{r}
 Dat <- data.frame(list(
@@ -135,7 +138,7 @@ Dat <- data.frame(list(
          )
 ```
 
-###Analise Fatorial
+### Analise Fatorial
 ```{r}
 aov(yield~bloco+A*B, data =Dat) %>% 
   summary()
@@ -146,7 +149,7 @@ aov(yield~bloco+ A*B, data =Dat) %>%
 ```
 
 
-###Analise Parcela subdividida DIC
+### Analise Parcela subdividida DIC
 ```{r}
 aov(yield~ bloco + A*B + Error(bloco:A), data =Dat) %>% 
   summary()
@@ -159,8 +162,7 @@ aov(yield~ bloco + A*B + Error(bloco:A), data =Dat) %>%
 ```{r}
 prdleite
 
-rbd(treat = prdleite$trt, block = prdleite$bloco, resp=prdleite$leite, quali = TRUE, mcomp='tukey',
-    hvar='oneillmathews', sigT = 0.05, sigF = 0.05)
+rbd(treat = prdleite$trt, block = prdleite$bloco, resp=prdleite$leite, quali = TRUE, mcomp='tukey', hvar='oneillmathews', sigT = 0.05, sigF = 0.05)
 
 
 ```
@@ -170,11 +172,9 @@ rbd(treat = prdleite$trt, block = prdleite$bloco, resp=prdleite$leite, quali = T
 data(ex3)
 
 attach(ex3)
-detach(ex3)
-
-latsd(ex3$trat, ex3$linha, ex3$coluna, ex3$resp, quali=TRUE, mcomp = "snk",
+latsd(trat, linha, coluna, resp, quali=TRUE, mcomp = "snk",
 sigT = 0.05, sigF = 0.05)
-
+detach(ex3)
 ```
 
 ## Regressao ExpDes
