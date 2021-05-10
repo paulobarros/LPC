@@ -170,7 +170,7 @@ anova(model2,test="Chisq")
 ```{r}
 setwd("~/Insync/leonardogloria@uenf.br/Google Drive/MENTORIA_R/LPC/LPC/Dados")
 dadosg <- read.table("dadosp.txt", h = T,na.strings=".") %>% 
-  mutate(age=idade,w=peso,animf=factor(animal),classe=sexo) %>% 
+  mutate(age=idade,w=peso,animf=factor(animal),classe=factor(sexo)) %>% 
   groupedData(w~age|animf,data=.)
 
 ```
@@ -282,7 +282,7 @@ ER[i]=max(wprob)/wprob[i]
 
 ##### Extraindo os intervalos de confiança dos parametros após escolha do melhor modelo
 ```{r}
-intervals(model27)
+intervals(model25)
 ```
 
 ##### Função para predição
