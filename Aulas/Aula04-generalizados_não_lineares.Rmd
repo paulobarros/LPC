@@ -1,0 +1,721 @@
+---
+title: "ANOVA"
+author: "Mentoria R"
+output: html_notebook
+highlight: tango
+---
+
+<hr>
+
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(include = T, echo =T, message=F, warning=F)
+```
+
+#### Pacotes
+
+```{r}
+library(tidyverse)
+library(emmeans)
+#install.packages("emmeans")
+```
+
+<br>
+
+## Importando Dados
+
+```{r}
+setwd("~/Insync/leonardogloria@uenf.br/Google Drive/MENTORIA_R/LPC/LPC/Dados")
+
+prdleite <- read.table("blocos.txt", h = T) %>% 
+  mutate(trt=factor(trt),bloco=factor(bloco))
+
+qlatino <- read.table("latino.txt", h = T) %>% 
+  mutate(trt=factor(trt),period=factor(period),sheep=factor(sheep))
+
+```
+
+## Modelo lineares generalizados Binomial
+setwd('/home/lzopc/Downloads/curso UFMT/Dia 3/generalizados/binomial')
+(dados <- read.table("dados.txt", h = T,na.strings = '.') )
+dados=na.exclude(dados)
+
+library(nlme)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+
+dados$trt=factor(dados$trt)
+dados$jum=factor(dados$jum)
+dados$anim=factor(dados$anim)
+
+
+model1= lme(dgr2~ trt*jum,
+           random = ~1|anim,
+           data = dados,method = 'REML')
+
+model2= glm(dgr2~ trt*jum, data = dados,family = binomial())
+
+
+model3= glmer(dgr2~ trt*jum +(1|anim), data = dados,family = binomial())
+
+
+emmeans(model3, list(pairwise ~ trt),adjust = "tukey",type = "response")
+
+## Modelo lineares generalizados Poisson
+setwd('/home/lzopc/Downloads/curso UFMT/Dia 3/generalizados/poisson')
+(dados <- read.table("dados.txt", h = T) )
+
+library(nlme)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+
+dados$trat=factor(dados$trat)
+dados$temp=factor(dados$temp)
+dados$unE=factor(paste0(dados$trat,dados$rep,dados$temp))
+
+model1= lme(vac~ trat*temp,
+           random = ~1|unE,
+           data = dados,method = 'REML')
+
+model1= glm(vac~ trat*temp, data = dados,family = poisson())
+
+
+model= glmer(vac~ trat*temp +(1|unE), data = dados,family = poisson())
+
+
+(me1=emmeans(model1, list(pairwise ~ trat:temp),adjust = "tukey",type = "response"))
+
+exp(c(5.87,5.63,6.10))
+
+summary(model)
+anova(model,test="Chisq")
+
+
+
+
+## Modelo lineares generalizados Contínua
+setwd('/home/lzopc/Downloads/curso UFMT/Dia 3/generalizados/continua')
+(dados <- read.table("dados.txt", h = T,na.strings = ".") )
+dados=na.exclude(dados)
+library(nlme)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+#install.packages("fitdistrplus")
+library(fitdistrplus)
+
+dados$trat=factor(dados$trat)
+dados$pecan=factor(dados$pecan)
+dados$unE=factor(paste0(dados$trat,dados$rep,dados$temp))
+####################
+#escolha da distribuição
+####################
+
+# gamma distribution
+fit_g  <- fitdist(dados$turb, "gamma")
+fit_n  <- fitdist(dados$turb, "norm")
+fit_ln  <- fitdist(dados$turb, "lnorm")
+
+####################
+#ajuste após escolha
+####################
+model1= rlm(turb~ trat*pecan, data = dados)
+model2= glm(turb~ trat*pecan, data = dados,family = Gamma())
+model3= glm(log(turb)~ trat*pecan, data = dados,family = gaussian(link="identity"))
+
+
+model1= lmer(turb~ trat*pecan +(1|unE), data = dados)
+model2= glmer(turb~ trat*pecan +(1|unE), data = dados,family = Gamma())
+model3= lmer(log(turb)~ trat*pecan +(1|unE), data = dados)
+
+(me1=emmeans(model1, list(pairwise ~ trat),adjust = "tukey",type = "response"))
+
+exp(c(5.87,5.63,6.10))
+
+summary(model1)
+anova(model2,test="Chisq")
+
+############################
+#ph
+############################
+####################
+#escolha da distribuição
+####################
+
+# gamma distribution
+fit_g  <- fitdist(dados$ph, "gamma")
+fit_n  <- fitdist(dados$ph, "norm")
+fit_ln  <- fitdist(dados$ph, "lnorm")
+
+####################
+#ajuste após escolha
+####################
+model1= glm(ph~ trat*pecan, data = dados,family = gaussian())
+model2= glm(ph~ trat*pecan, data = dados,family = Gamma())
+model3= glm(log(ph)~ trat*pecan, data = dados,family = gaussian(link="identity"))
+
+(me2=emmeans(model2, list(pairwise ~ trat),adjust = "tukey",type = "response"))
+model1= lmer(ph~ trat*pecan +(1|unE), data = dados)
+model2= glmer(ph~ trat*pecan +(1|unE), data = dados,family = Gamma())
+model3= lmer(log(ph)~ trat*pecan +(1|unE), data = dados)
+
+
+## MNLM
+
+setwd("/home/lzopc/Downloads/curso UFMT/dados alunos")
+dados = read.table("dadosp.txt", h = T,na.strings=".")
+
+require(nlme)
+
+dados$age=dados$idade
+dados$w=dados$peso
+dados$animf=factor(dados$animal)
+
+dadosg=groupedData(w~age|animf,dados)
+
+dadosg$classe=factor(dadosg$sexo) #igual class do SAS
+
+##############
+teta=c();   AIcc=c();
+##### inicio###
+model01=nlme(w~(a*age)/(b+age),fixed=list(a+b~1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=1000),
+             data=dadosg,start=list(fixed =c(68.67619, 62.05723)),na.action=na.omit)      #MM
+######################
+
+(teta[1]=attributes(logLik(model01))$df)
+(AIcc[1]=-2*model01$logLik+2*teta[1]+(2*teta[1]*(teta[1]+1))/(nrow(dadosg)-teta[1]-1))
+
+##################################
+model02=nlme(w~a*(1-b*(exp(-k*age))),fixed=list(a+b+k~1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=100),
+             data=dadosg,start=list(fixed =c(41.34383654,  1.01645781,  0.02707225)),na.action=na.omit)       #brody
+######################
+
+(teta[2]=attributes(logLik(model02))$df)
+(AIcc[2]=-2*model02$logLik+2*teta[2]+(2*teta[2]*(teta[2]+1))/(nrow(dadosg)-teta[2]-1))
+
+##################################
+model03=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=100),
+             data=dadosg,start=list(fixed =c(30.4443882, 12.7867281,  0.1316284)),na.action=na.omit)       #logistico
+######################
+
+(teta[3]=attributes(logLik(model03))$df)
+(AIcc[3]=-2*model03$logLik+2*teta[3]+(2*teta[3]*(teta[3]+1))/(nrow(dadosg)-teta[3]-1))
+
+##################################
+model04=nlme(w~a*(1-b*(exp(-k*age)))**3,fixed=list(a+b+k~1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=100),
+             data=dadosg,start=list(fixed =c(33.28092852,  0.72405759,  0.06302193)),na.action=na.omit)       #Von Bertalanffy
+######################
+
+(teta[4]=attributes(logLik(model04))$df)
+(AIcc[4]=-2*model04$logLik+2*teta[4]+(2*teta[4]*(teta[4]+1))/(nrow(dadosg)-teta[4]-1))
+
+##################################
+model05=nlme(w~a*exp(-b*(exp(-k*age))),fixed=list(a+b+k~1),random=pdDiag(k~1),control=nlmeControl(minScale=10**-100,maxIter=100),
+             data=dadosg,start=list(fixed =c(32.10543657,  3.27567234,  0.07970014)),na.action=na.omit)       #Gompertz
+######################
+
+(teta[5]=attributes(logLik(model05))$df)
+(AIcc[5]=-2*model05$logLik+2*teta[5]+(2*teta[5]*(teta[5]+1))/(nrow(dadosg)-teta[5]-1))
+
+##################################
+model06=nlme(w~a*(1-b*(exp(-k*age)))**M,fixed=list(a+b+k+M~1),random=pdDiag(k~1),control=nlmeControl(minScale=10**-100,maxIter=100),
+             data=dadosg,start=list(fixed =c(31,  3.3675889,  0.1734567,  1)),na.action=na.omit)       #richards
+######################
+
+(teta[6]=attributes(logLik(model06))$df)
+(AIcc[6]=-2*model06$logLik+2*teta[6]+(2*teta[6]*(teta[6]+1))/(nrow(dadosg)-teta[6]-1))
+
+##################################
+##### efeito classe###
+length(levels(dadosg$classe))
+st07=c(rep(summary(model01)$ coefficients$fixed[[1]],length(levels(dadosg$classe))),rep(summary(model01)$ coefficients$fixed[[2]],length(levels(dadosg$classe))))
+
+model07=nlme(w~(a*age)/(b+age),fixed=list(a+b~classe-1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=st07,na.action=na.omit)      #MM
+######################
+
+(teta[7]=attributes(logLik(model07))$df)
+(AIcc[7]=-2*model07$logLik+2*teta[7]+(2*teta[7]*(teta[7]+1))/(nrow(dadosg)-teta[7]-1))
+
+##################################
+st08=c(rep(summary(model02)$ coefficients$fixed[[1]],length(levels(dadosg$classe))),rep(summary(model02)$ coefficients$fixed[[2]],length(levels(dadosg$classe))),rep(summary(model02)$ coefficients$fixed[[3]],length(levels(dadosg$classe))))
+
+model08=nlme(w~a*(1-b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=st08,na.action=na.omit)       #brody
+######################
+
+(teta[8]=attributes(logLik(model08))$df)
+(AIcc[8]=-2*model08$logLik+2*teta[8]+(2*teta[8]*(teta[8]+1))/(nrow(dadosg)-teta[8]-1))
+
+##################################
+st09=c(rep(summary(model03)$ coefficients$fixed[[1]],length(levels(dadosg$classe))),rep(summary(model03)$ coefficients$fixed[[2]],length(levels(dadosg$classe))),rep(summary(model03)$ coefficients$fixed[[3]],length(levels(dadosg$classe))))
+
+model09=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=st09,na.action=na.omit)       #logistico
+
+######################
+
+(teta[9]=attributes(logLik(model09))$df)
+(AIcc[9]=-2*model09$logLik+2*teta[9]+(2*teta[9]*(teta[9]+1))/(nrow(dadosg)-teta[9]-1))
+
+##################################
+st10=c(rep(summary(model04)$ coefficients$fixed[[1]],70),rep(summary(model04)$ coefficients$fixed[[2]],70),rep(summary(model04)$ coefficients$fixed[[3]],70))
+
+model10=nlme(w~a*(1-b*(exp(-k*age)))**3,fixed=list(a~classe-1,b~classe-1,k~classe-1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=c(2.883187e+03, 1.645893e+03, 3.178017e+01, 2.242542e+01, 6.796806e-02, 7.465750e-02),na.action=na.omit)       #Von Bertalanffy
+######################
+
+(teta[10]=attributes(logLik(model10))$df)
+(AIcc[10]=-2*model10$logLik+2*teta[10]+(2*teta[10]*(teta[10]+1))/(nrow(dadosg)-teta[10]-1))
+
+##################################
+st11=c(rep(summary(model05)$ coefficients$fixed[[1]],70),rep(summary(model05)$ coefficients$fixed[[2]],70),rep(summary(model05)$ coefficients$fixed[[3]],70))
+
+model11=nlme(w~a*exp(-b*(exp(-k*age))),fixed=list(a~classe-1,b~classe-1,k~classe-1),random=pdDiag(a+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=st09,na.action=na.omit)       #Gompertz
+######################
+
+(teta[11]=attributes(logLik(model11))$df)
+(AIcc[11]=-2*model11$logLik+2*teta[11]+(2*teta[11]*(teta[11]+1))/(nrow(dadosg)-teta[11]-1))
+
+##################################
+st12=c(rep(summary(model06)$ coefficients$fixed[[1]],70),rep(summary(model06)$ coefficients$fixed[[2]],70),rep(summary(model06)$ coefficients$fixed[[3]],70),rep(1,70))
+
+model12=nlme(w~a*(1-b*(exp(-k*age)))**M,fixed=list(a~classe-1,b~classe-1,k~classe-1,M~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=st12,na.action=na.omit)       #richards
+######################
+
+(teta[12]=attributes(logLik(model12))$df)
+(AIcc[12]=-2*model12$logLik+2*teta[12]+(2*teta[12]*(teta[12]+1))/(nrow(dadosg)-teta[12]-1))
+
+################################## weights= varPower(0.02, form = ~age|classe)
+##### efeito classe e weight### weights= varPower()
+parf=c()
+for (i in 1:length(summary(model07)$ coefficients$fixed))      {
+par1=summary(model07)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+
+model13=nlme(w~(a*age)/(b+age),fixed=list(a+b~classe-1),random=pdDiag(b~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,weights= varPower())      #MM
+######################
+
+(teta[13]=attributes(logLik(model13))$df)
+(AIcc[13]=-2*model13$logLik+2*teta[13]+(2*teta[13]*(teta[13]+1))/(nrow(dadosg)-teta[13]-1))
+
+##################################
+parf=c()
+for (i in 1:length(summary(model08)$ coefficients$fixed))      {
+par1=summary(model08)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model14=nlme(w~a*(1-b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,weights= varPower( form = ~age|classe))       #brody
+######################
+
+(teta[14]=attributes(logLik(model14))$df)
+(AIcc[14]=-2*model14$logLik+2*teta[14]+(2*teta[14]*(teta[14]+1))/(nrow(dadosg)-teta[14]-1))
+
+##################################
+parf=c()
+for (i in 1:length(summary(model09)$ coefficients$fixed))      {
+par1=summary(model09)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model15=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,weights= varPower())       #logistico
+
+######################
+
+(teta[15]=attributes(logLik(model15))$df)
+(AIcc[15]=-2*model15$logLik+2*teta[15]+(2*teta[15]*(teta[15]+1))/(nrow(dadosg)-teta[15]-1))
+
+##################################
+ parf=c()
+for (i in 1:length(summary(model22)$ coefficients$fixed))      {
+par1=summary(model22)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+
+model16=nlme(w~a*(1-b*(exp(-k*age)))**3,fixed=list(a~classe-1,b~classe-1,k~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,weights= varPower())       #Von Bertalanffy
+######################
+
+(teta[16]=attributes(logLik(model16))$df)
+(AIcc[16]=-2*model16$logLik+2*teta[16]+(2*teta[16]*(teta[16]+1))/(nrow(dadosg)-teta[16]-1))
+
+##################################
+ parf=c()
+for (i in 1:length(summary(model23)$ coefficients$fixed))      {
+par1=summary(model23)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model17=nlme(w~a*exp(-b*(exp(-k*age))),fixed=list(a~classe-1,b~classe-1,k~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,weights= varPower())       #Gompertz
+######################
+
+(teta[17]=attributes(logLik(model17))$df)
+(AIcc[17]=-2*model17$logLik+2*teta[17]+(2*teta[17]*(teta[17]+1))/(nrow(dadosg)-teta[17]-1))
+
+##################################
+ parf=c()
+for (i in 1:length(summary(model12)$ coefficients$fixed))      {
+par1=summary(model12)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model18=nlme(w~a*(1-b*(exp(-k*age)))**M,fixed=list(a~classe-1,b~classe-1,k~classe-1,M~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=st12,na.action=na.omit,weights= varPower())       #richards
+######################
+
+(teta[18]=attributes(logLik(model18))$df)
+(AIcc[18]=-2*model18$logLik+2*teta[18]+(2*teta[18]*(teta[18]+1))/(nrow(dadosg)-teta[18]-1))
+
+################################## ,corr=corCAR1()
+##### efeito classe, correlation###
+parf=c()
+for (i in 1:length(summary(model07)$ coefficients$fixed))      {
+par1=summary(model07)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model19=nlme(w~(a*age)/(b+age),fixed=list(a+b~classe-1),random=pdDiag(a+b~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,corr=corCAR1())      #MM
+######################
+
+(teta[19]=attributes(logLik(model19))$df)
+(AIcc[19]=-2*model19$logLik+2*teta[19]+(2*teta[19]*(teta[19]+1))/(nrow(dadosg)-teta[19]-1))
+
+##################################
+parf=c()
+for (i in 1:length(summary(model08)$ coefficients$fixed))      {
+par1=summary(model08)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model20=nlme(w~a*(1-b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,corr=corCAR1())       #brody
+######################
+
+(teta[20]=attributes(logLik(model20))$df)
+(AIcc[20]=-2*model20$logLik+2*teta[20]+(2*teta[20]*(teta[20]+1))/(nrow(dadosg)-teta[20]-1))
+
+##################################
+parf=c()
+for (i in 1:length(summary(model09)$ coefficients$fixed))      {
+par1=summary(model09)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model21=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,corr=corCAR1())       #logistico
+######################
+
+(teta[21]=attributes(logLik(model21))$df)
+(AIcc[21]=-2*model21$logLik+2*teta[21]+(2*teta[21]*(teta[21]+1))/(nrow(dadosg)-teta[21]-1))
+
+##################################
+parf=c()
+for (i in 1:length(summary(model10)$ coefficients$fixed))      {
+par1=summary(model10)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model22=nlme(w~a*(1-b*(exp(-k*age)))**3,fixed=list(a~classe-1,b~classe-1,k~classe-1),random=pdDiag(a+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,corr=corCAR1())       #Von Bertalanffy
+######################
+
+(teta[22]=attributes(logLik(model22))$df)
+(AIcc[22]=-2*model22$logLik+2*teta[22]+(2*teta[22]*(teta[22]+1))/(nrow(dadosg)-teta[22]-1))
+
+##################################
+parf=c()
+for (i in 1:length(summary(model11)$ coefficients$fixed))      {
+par1=summary(model11)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model23=nlme(w~a*exp(-b*(exp(-k*age))),fixed=list(a~classe-1,b~classe-1,k~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,corr=corCAR1())       #Gompertz
+######################
+
+(teta[23]=attributes(logLik(model23))$df)
+(AIcc[23]=-2*model23$logLik+2*teta[23]+(2*teta[23]*(teta[23]+1))/(nrow(dadosg)-teta[23]-1))
+
+##################################
+parf=c()
+for (i in 1:length(summary(model12)$ coefficients$fixed))      {
+par1=summary(model12)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model24=nlme(w~a*(1-b*(exp(-k*age)))**M,fixed=list(a~classe-1,b~classe-1,k~classe-1,M~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=st12,na.action=na.omit,corr=corCAR1())       #richards
+
+######################
+
+(teta[24]=attributes(logLik(model24))$df)
+(AIcc[24]=-2*model24$logLik+2*teta[24]+(2*teta[24]*(teta[24]+1))/(nrow(dadosg)-teta[24]-1))
+
+##################################
+############################# CAR e Weigth
+##################################
+parf=c()
+for (i in 1:length(summary(model21)$ coefficients$fixed))      {
+par1=summary(model21)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model25=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,corr=corCAR1(),weights= varPower())       #logistico
+######################
+
+(teta[25]=attributes(logLik(model25))$df)
+(AIcc[25]=-2*model25$logLik+2*teta[25]+(2*teta[25]*(teta[25]+1))/(nrow(dadosg)-teta[25]-1))
+
+##################################
+parf=c()
+for (i in 1:length(summary(model22)$ coefficients$fixed))      {
+par1=summary(model22)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model26=nlme(w~a*(1-b*(exp(-k*age)))**3,fixed=list(a~classe-1,b~classe-1,k~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,corr=corCAR1(),weights= varPower( form = ~age|classe))       #Von Bertalanffy
+
+######################
+
+(teta[26]=attributes(logLik(model26))$df)
+(AIcc[26]=-2*model26$logLik+2*teta[26]+(2*teta[26]*(teta[26]+1))/(nrow(dadosg)-teta[26]-1))
+
+##################################
+parf=c()
+for (i in 1:length(summary(model23)$ coefficients$fixed))      {
+par1=summary(model23)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model27=nlme(w~a*exp(-b*(exp(-k*age))),fixed=list(a~classe-1,b~classe-1,k~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,corr=corCAR1(),weights= varPower( form = ~age|classe))       #Gompertz
+######################
+
+(teta[27]=attributes(logLik(model27))$df)
+(AIcc[27]=-2*model27$logLik+2*teta[27]+(2*teta[27]*(teta[27]+1))/(nrow(dadosg)-teta[27]-1))
+
+##################################
+##################################
+parf=c()
+for (i in 1:length(summary(model24)$ coefficients$fixed))      {
+par1=summary(model24)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model28=nlme(w~a*(1-b*(exp(-k*age)))**M,fixed=list(a~classe-1,b~classe-1,k~classe-1,M~classe-1),random=pdDiag(a+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=st12,na.action=na.omit,corr=corCAR1(),weights= varPower())       #richards
+
+######################
+##################################
+
+(teta[28]=attributes(logLik(model28))$df)
+(AIcc[28]=-2*model28$logLik+2*teta[28]+(2*teta[28]*(teta[28]+1))/(nrow(dadosg)-teta[28]-1))
+
+##################################
+##################################
+
+model29=nlme(w~(b*k**M+a*age**M)/(k**M+age**M),fixed=list(a~1,b~1,k~1,M~1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=list(fixed =c(33.060840,  3.062982, 21.797556,  2.669731)),na.action=na.omit)       #Lopez
+
+
+
+######################
+######################
+
+(teta[29]=attributes(logLik(model29))$df)
+(AIcc[29]=-2*model29$logLik+2*teta[29]+(2*teta[29]*(teta[29]+1))/(nrow(dadosg)-teta[29]-1))
+
+##################################
+st30=c(rep(summary(model29)$ coefficients$fixed[[1]],70),rep(summary(model29)$ coefficients$fixed[[2]],70),rep(summary(model29)$ coefficients$fixed[[3]],70),rep(summary(model29)$ coefficients$fixed[[4]],70))
+
+model30=nlme(w~(b*k**M+a*age**M)/(k**M+age**M),fixed=list(a~classe-1,b~classe-1,k~classe-1,M~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=st30,na.action=na.omit)       #Lopez
+
+
+
+######################
+######################
+
+(teta[30]=attributes(logLik(model30))$df)
+(AIcc[30]=-2*model30$logLik+2*teta[30]+(2*teta[30]*(teta[30]+1))/(nrow(dadosg)-teta[30]-1))
+
+##################################
+##################################
+parf=c()
+for (i in 1:length(summary(model30)$ coefficients$fixed))      {
+par1=summary(model30)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model31=nlme(w~(b*k**M+a*age**M)/(k**M+age**M),fixed=list(a~classe-1,b~classe-1,k~classe-1,M~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,corr=corCAR1())       #Lopez
+
+
+
+######################
+
+(teta[31]=attributes(logLik(model31))$df)
+(AIcc[31]=-2*model31$logLik+2*teta[31]+(2*teta[31]*(teta[31]+1))/(nrow(dadosg)-teta[31]-1))
+######################
+##################################
+ parf=c()
+for (i in 1:length(summary(model30)$ coefficients$fixed))      {
+par1=summary(model30)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model32=nlme(w~(b*k**M+a*age**M)/(k**M+age**M),fixed=list(a~classe-1,b~classe-1,k~classe-1,M~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,weights= varPower())       #Lopez
+
+
+
+######################
+
+(teta[32]=attributes(logLik(model32))$df)
+(AIcc[32]=-2*model32$logLik+2*teta[32]+(2*teta[32]*(teta[32]+1))/(nrow(dadosg)-teta[32]-1))
+######################
+##################################
+ parf=c()
+for (i in 1:length(summary(model31)$ coefficients$fixed))      {
+par1=summary(model31)$ coefficients$fixed[[i]]
+parf=rbind(parf,par1)
+ }
+
+model33=nlme(w~(b*k**M+a*age**M)/(k**M+age**M),fixed=list(a~classe-1,b~classe-1,k~classe-1,M~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+             data=dadosg,start=parf,na.action=na.omit,corr=corCAR1(),weights= varPower())       #Lopez
+
+######################
+
+(teta[33]=attributes(logLik(model33))$df)
+(AIcc[33]=-2*model33$logLik+2*teta[33]+(2*teta[33]*(teta[33]+1))/(nrow(dadosg)-teta[33]-1))
+######################
+
+
+
+#intervals(model27)
+
+#dadospred = read.table("dadoschizzoti_pred.txt", h = T,na.strings=".")
+#yp<-predict(model26)
+#results<-data.frame(dadospred$anim,na.omit(dadospred$age),na.omit(dadospred$w),yp)
+#write.table(results,"results_pred.csv",row.names=T,sep=";")
+
+##################################
+##########################construindo a tabela AKAIKE######
+teta=na.exclude(teta)
+AIcc=na.exclude(AIcc)
+
+
+delta=c()
+for(i in 1: length(AIcc)){
+delta[i]=AIcc[i]-min(AIcc)
+}
+
+wpro=c()
+for(i in 1:length(AIcc)){
+wpro[i]=exp(-delta[i]/2)
+}
+sum(wpro[1:length(AIcc)])
+
+wprob=c()
+for(i in 1: length(AIcc)){
+wprob[i]=exp(-delta[i]/2)/sum(wpro[1:length(AIcc)])
+}
+
+
+ER=c()
+for(i in 1: length(AIcc)){
+ER[i]=max(wprob)/wprob[i]
+}
+#####################################
+
+
+(quadro.akaike=data.frame(teta,AICc=AIcc,delta,wprob,ER))  ###juntando os calculos para tabela de AKAIKE
+write.table(quadro.akaike,"akaikec1.csv",dec=".",sep=";")  ##### criando a planilha ja com a tabela de AKAIKE
+########################################################
+
+
+
+
+
+
+
+
+### Plotando modelos não lineares
+
+
+#write.table(param,"parametros_curva.txt",row.names = F,quote = F)
+param=read.table("parametros_curva.txt",h=T)
+row.names(param)=c("Males","Females")
+param
+
+Logistic(response = "peso",age = "days")
+
+require(nlmePlus)
+
+timeD=seq(1,200,by=0.25)
+#predictions
+predc1=Logistichat(a=param[1,1],b=param[1,2],k=param[1,3],age =time)
+predc2=Logistichat(a=param[2,1],b=param[2,2],k=param[2,3],age =time)
+#growth rate
+grc1=GRLogistic(a=param[1,1],b=param[1,2],k=param[1,3],age =time)
+grc2=GRLogistic(a=param[2,1],b=param[2,2],k=param[2,3],age =time)
+#################
+#inflaction point (max efficiency)
+maxef1=data.frame(grc1)
+rownames(maxef1)=time
+
+maxefx1=as.numeric(rownames(maxef1)[which.max(maxef1$grc1)])
+maxefy1=maxef1$grc1[which.max(maxef1$grc1)]
+
+maxef2=data.frame(grc2)
+rownames(maxef2)=time
+
+maxefx2=as.numeric(rownames(maxef2)[which.max(maxef2$grc2)])
+maxefy2=maxef2$grc2[which.max(maxef2$grc2)]
+
+### Multiple Y Axes
+library(plotly)
+ay <- list(
+  tickfont = list(color = "black"),
+  overlaying = "y",
+  side = "right",
+  title = "Daily Weight Gain(g)"
+)
+fig <- plot_ly()
+fig <- fig %>% add_lines(x = time, y = predc1, name = "Weight Males")
+fig <- fig %>% add_lines(x = time, y = grc1, name = "Growth Rate Males", yaxis = "y2")
+fig <- fig %>% add_markers(x = maxefx1, y = maxefy1, name = "Max Growth Rate Males", yaxis = "y2")
+fig <- fig %>% add_segments(line=list(type="dash"),x = maxefx1,xend=maxefx1, y = 0,yend =maxefy1, yaxis = "y2",name = "Max Growth Rate Males")
+
+fig <- fig %>% add_lines(x = time, y = predc2, name = "Weight Females")
+fig <- fig %>% add_lines(x = time, y = grc2, name = "Growth Rate Females", yaxis = "y2")
+fig <- fig %>% add_markers(x = maxefx2, y = maxefy2, name = "Max Growth Rate Females", yaxis = "y2")
+fig <- fig %>% add_segments(color = I("gray"),x = maxefx2,xend=maxefx2, y = 0,yend =maxefy2, yaxis = "y2",name = "Max Growth Rate Females")
+
+fig <- fig %>% layout(
+  title = "Growth Curve with Growth rate", yaxis2 = ay,
+  xaxis = list(title="Age(days)"),
+  yaxis = list(title="Weight(g)")
+)
+
+fig
+
+GCurve=data.frame(predc1,predc2,grc1,grc2,timeD)
+write.csv(GCurve,"GCurve.csv",row.names = F,quote = F)
+
+
