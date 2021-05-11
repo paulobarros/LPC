@@ -36,7 +36,7 @@ library(plotly)
 ```{r}
 setwd("~/Insync/leonardogloria@uenf.br/Google Drive/MENTORIA_R/LPC/LPC/Dados")
 
-(dados <- read.table("dados_binomial.txt", h = T,na.strings = '.') ) %>%
+dados <- read.table("dados_binomial.txt", h = T,na.strings = '.')%>%
   mutate(trt=factor(trt),jum=factor(jum),anim=factor(anim))
 
 
@@ -44,17 +44,18 @@ setwd("~/Insync/leonardogloria@uenf.br/Google Drive/MENTORIA_R/LPC/LPC/Dados")
 ##### Modelo com resposta binomial
 
 ```{r}
-lme(dgr2~ trt*jum,
-           random = ~1|anim,
+lme(dgr2~ trt*jum, random = ~1|anim,
            data = dados,method = 'REML',na.action=na.omit) %>% anova(test="Chisq")
 
 glm(dgr2~ trt*jum, data = dados,family = binomial(),na.action=na.omit) %>% anova(test="Chisq")
 
 
-glmer(dgr2~ trt*jum +(1|anim), data = dados,family = binomial(),na.action=na.omit)
-
 glmer(dgr2~ trt*jum +(1|anim), data = dados,family = binomial(),na.action=na.omit) %>% 
-  emmeans(list(pairwise ~ trt),adjust = "tukey",type = "response")
+  anova(test="Chisq")
+
+glmer(dgr2~ trt*jum+(1|anim), data = dados,family = binomial(),na.action=na.omit) %>% 
+  emmeans(list(pairwise ~ jum),adjust = "tukey",type = "response")
+
 ```
 
 
@@ -121,10 +122,10 @@ fitdist(dados$turb, "lnorm")%>%
 ```{r}
 model1= rlm(turb~ trat*pecan, data = dados)
 model2= glm(turb~ trat*pecan, data = dados,family = Gamma())
-model3= glm(log(turb)~ trat*pecan, data = dados,family = gaussian(link="identity"))
+model3= glm(log(turb)~ trat*pecan, data = dados,family = gaussian(link="identity")) #não confiar
 
 
-model1= lmer(turb~ trat*pecan +(1|unE), data = dados)
+model1 <-  lmer(turb~ trat*pecan +(1|unE), data = dados) %>% anova()
 model2= glmer(turb~ trat*pecan +(1|unE), data = dados,family = Gamma())
 model3= lmer(log(turb)~ trat*pecan +(1|unE), data = dados)
 
@@ -159,8 +160,7 @@ model2= glmer(ph~ trat*pecan +(1|unE), data = dados,family = Gamma())
 model3= lmer(log(ph)~ trat*pecan +(1|unE), data = dados)
 
 (emmeans(model2, list(pairwise ~ trat:pecan),adjust = "tukey",type = "response"))
-summary(model2)
-anova(model2,test="Chisq")
+
 ```
 
 #### Modelo não lineares mistos
@@ -170,7 +170,7 @@ anova(model2,test="Chisq")
 ```{r}
 setwd("~/Insync/leonardogloria@uenf.br/Google Drive/MENTORIA_R/LPC/LPC/Dados")
 dadosg <- read.table("dadosp.txt", h = T,na.strings=".") %>% 
-  mutate(age=idade,w=peso,animf=factor(animal),classe=sexo) %>% 
+  mutate(age=idade,w=peso,animf=factor(animal),classe=factor(sexo)) %>% 
   groupedData(w~age|animf,data=.)
 
 ```
@@ -178,8 +178,10 @@ dadosg <- read.table("dadosp.txt", h = T,na.strings=".") %>%
 ##### Análise o modelo logistico populacional, sem efeito fixo
 ```{r}
 teta=c();   AIcc=c();
+
 model03=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=100),
-             data=dadosg,start=list(fixed =c(30.4443882, 12.7867281,  0.1316284)),na.action=na.omit)       #logistico
+             data=dadosg,
+             start=list(fixed =c(30.4443882,12.7867281,0.06)),na.action=na.omit)       #logistico
 
 (teta[3]=attributes(logLik(model03))$df)
 (AIcc[3]=-2*model03$logLik+2*teta[3]+(2*teta[3]*(teta[3]+1))/(nrow(dadosg)-teta[3]-1))
@@ -197,7 +199,7 @@ model09=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(a+
 (AIcc[9]=-2*model09$logLik+2*teta[9]+(2*teta[9]*(teta[9]+1))/(nrow(dadosg)-teta[9]-1))
 ```
 
-#####  Análise o modelo logistico com efeito fixo com modelagem da varíancia entre os animais
+#####  Análise o modelo logistico com efeito fixo com modelagem da variância entre os animais
 
 ```{r}
 parf=c()
@@ -282,7 +284,7 @@ ER[i]=max(wprob)/wprob[i]
 
 ##### Extraindo os intervalos de confiança dos parametros após escolha do melhor modelo
 ```{r}
-intervals(model27)
+intervals(model25)
 ```
 
 ##### Função para predição
@@ -304,7 +306,7 @@ setwd("~/Insync/leonardogloria@uenf.br/Google Drive/MENTORIA_R/LPC/LPC/Dados")
 param=read.table("parametros_curva.txt",h=T)
 row.names(param)=c("Males","Females")
 
-time=seq(1,200,by=0.25)
+time=seq(1,90,by=0.25)
 #predictions
 predc1=Logistichat(a=param[1,1],b=param[1,2],k=param[1,3],age =time)
 predc2=Logistichat(a=param[2,1],b=param[2,2],k=param[2,3],age =time)
