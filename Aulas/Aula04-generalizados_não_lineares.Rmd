@@ -52,7 +52,7 @@ glm(dgr2~ trt*jum, data = dados,family = binomial(),na.action=na.omit) %>% anova
 glmer(dgr2~ trt*jum +(1|anim), data = dados,family = binomial(),na.action=na.omit) %>% 
   anova(test="Chisq")
 
-glmer(dgr2~ trt*jum+(1|anim), data = dados,family = binomial(),na.action=na.omit) %>% 
+glm(dgr2~ trt*jum, data = dados,family = binomial(),na.action=na.omit) %>% 
   emmeans(list(pairwise ~ jum),adjust = "tukey",type = "response")
 
 ```
@@ -87,8 +87,6 @@ glmer(vac~ trat*temp +(1|unE), data = dados,family = poisson(),na.action=na.omit
   emmeans( list(pairwise ~ trat:temp),adjust = "tukey",type = "response")
 
 
-summary(model)
-anova(model,test="Chisq")
 ```
 
 #### Modelo lineares generalizados Contínua
@@ -119,12 +117,12 @@ fitdist(dados$turb, "lnorm")%>%
 
 ##### Ajuste após escolha
 ```{r}
-model1= rlm(turb~ trat*pecan, data = dados)
+model1= lm(turb~ trat*pecan, data = dados)
 model2= glm(turb~ trat*pecan, data = dados,family = Gamma())
 model3= glm(log(turb)~ trat*pecan, data = dados,family = gaussian(link="identity")) #não confiar
 
 
-model1 <-  lmer(turb~ trat*pecan +(1|unE), data = dados) %>% anova()
+model1 <-  lmer(turb~ trat*pecan +(1|unE), data = dados) 
 model2= glmer(turb~ trat*pecan +(1|unE), data = dados,family = Gamma())
 model3= lmer(log(turb)~ trat*pecan +(1|unE), data = dados)
 
@@ -149,9 +147,9 @@ fitdist(dados$ph, "lnorm")%>%
 
 ##### Ajuste após escolha
 ```{r}
-model1= glm(ph~ trat*pecan, data = dados,family = gaussian())
-model2= glm(ph~ trat*pecan, data = dados,family = Gamma())
-model3= glm(log(ph)~ trat*pecan, data = dados,family = gaussian(link="identity"))
+model1= glm(ph~ trat*pecan, data = dados,family = gaussian()) %>% anova(test="Chisq")
+model2= glm(ph~ trat*pecan, data = dados,family = Gamma()) %>% anova(test="Chisq")
+model3= glm(log(ph)~ trat*pecan, data = dados,family = gaussian(link="identity")) #não confiar
 
 
 model1= lmer(ph~ trat*pecan +(1|unE), data = dados)
@@ -178,7 +176,8 @@ dadosg <- read.table("dadosp.txt", h = T,na.strings=".") %>%
 ```{r}
 teta=c();   AIcc=c();
 
-model03=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=100),
+model03=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~1),random=pdDiag(a~1),
+             control=nlmeControl(minScale=10**-100,maxIter=100),
              data=dadosg,
              start=list(fixed =c(30.4443882,12.7867281,0.06)),na.action=na.omit)       #logistico
 
@@ -190,7 +189,8 @@ model03=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~1),random=pdDiag(a~1),cont
 ```{r}
 st09=c(rep(summary(model03)$ coefficients$fixed[[1]],length(levels(dadosg$classe))),rep(summary(model03)$ coefficients$fixed[[2]],length(levels(dadosg$classe))),rep(summary(model03)$ coefficients$fixed[[3]],length(levels(dadosg$classe))))
 
-model09=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+model09=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),
+             random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
              data=dadosg,start=st09,na.action=na.omit)       #logistico
 
 
@@ -207,7 +207,8 @@ par1=summary(model09)$ coefficients$fixed[[i]]
 parf=rbind(parf,par1)
  }
 
-model15=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+model15=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),
+             random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
              data=dadosg,start=parf,na.action=na.omit,weights= varPower())       #logistico
 
 ######################
@@ -224,7 +225,8 @@ par1=summary(model09)$ coefficients$fixed[[i]]
 parf=rbind(parf,par1)
  }
 
-model21=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+model21=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),
+             random=pdDiag(a+b+k~1),control=nlmeControl(minScale=10**-100,maxIter=500),
              data=dadosg,start=parf,na.action=na.omit,corr=corCAR1())       #logistico
 ######################
 
@@ -240,7 +242,8 @@ par1=summary(model21)$ coefficients$fixed[[i]]
 parf=rbind(parf,par1)
  }
 
-model25=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=500),
+model25=nlme(w~a/(1+b*(exp(-k*age))),fixed=list(a+b+k~classe-1),
+             random=pdDiag(a~1),control=nlmeControl(minScale=10**-100,maxIter=500),
              data=dadosg,start=parf,na.action=na.omit,corr=corCAR1(),weights= varPower())       #logistico
 ######################
 
